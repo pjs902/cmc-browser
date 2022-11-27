@@ -1,7 +1,7 @@
 from setuptools import find_packages, setup  # pragma: no cover
 
 setup(  # pragma: no cover
-    name="cmc-broswer",
+    name="cmc-browser",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     author="Peter Smith",
