@@ -1,16 +1,11 @@
 import glob
-import sys
 import requests
 import gzip
 import tarfile
 import os
 import time
 
-# TODO: Make cmctoolkit properly installable
-cmctoolkit_path = "/home/peter/research/cmctoolkit"
-sys.path.append(cmctoolkit_path)
 import cmctoolkit as ck
-
 
 class CMCBrowser:
     def __init__(self, ss_dir="/home/peter/research/CMC-obs/snapshots"):
