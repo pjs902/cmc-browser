@@ -7,6 +7,7 @@ import time
 
 import cmctoolkit as ck
 
+
 class CMCBrowser:
     def __init__(self, ss_dir="/home/peter/research/CMC-obs/snapshots"):
         """
