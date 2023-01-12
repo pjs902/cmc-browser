@@ -1,4 +1,4 @@
-from browser import CMCBrowser
+from cmcbrowser import CMCBrowser
 import pytest
 
 

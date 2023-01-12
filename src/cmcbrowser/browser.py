@@ -7,6 +7,8 @@ import time
 
 import cmctoolkit as ck
 
+__all__ = ["CMCBrowser"]
+
 
 class CMCBrowser:
     def __init__(self, ss_dir="/home/peter/research/CMC-obs/snapshots"):
@@ -98,6 +100,11 @@ class CMCBrowser:
 
         Z : str
             The metallicity of the model. Must be one of ["0.02", "0.002", "0.0002"]
+
+        Notes
+        -----
+        The largest models with N=3.2e6 are only computed for a subset of the possible parameters.
+
         """
         base_url = (
             "https://cmc.ciera.northwestern.edu/download-cluster/download-cluster/"
