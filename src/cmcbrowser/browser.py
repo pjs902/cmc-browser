@@ -4,6 +4,7 @@ import gzip
 import tarfile
 import os
 import time
+import h5py
 
 import cmctoolkit as ck
 
@@ -32,9 +33,20 @@ class CMCBrowser:
         # enumerate the snapshots for each model
         self.model_snapshots = {}
         for model in self.models_list:
-            self.model_snapshots[model] = glob.glob(
-                f"{self.ss_dir}/{model}/initial.*.dat.gz"
-            )
+
+            # check first if there is a tar.gz snapshot
+            snap_fn = glob.glob(f"{self.ss_dir}/{model}/initial.*.dat.gz")
+            if len(snap_fn) == 0:
+                # check instead for the hdf5 snapshot
+                snap_fn = glob.glob(f"{self.ss_dir}/{model}/*.window.snapshots.h5")
+
+                # enumerate the datasets in the hdf5 file
+                with h5py.File(snap_fn[0], "r") as f:
+                    snap_fn = [ss for ss in f.keys()]
+
+            # save the snapshot filenames
+            self.model_snapshots[model] = snap_fn
+
         # remove directory from snapshot name
         for model in self.models_list:
             self.model_snapshots[model] = [
@@ -58,30 +70,60 @@ class CMCBrowser:
             print(ss)
 
     def load_snapshot(
-        self, model_name, ss_name="initial.snap0000.dat.gz", distance=5.0
+        self,
+        model_name,
+        distance=5.0,
+        ss_name="king.window.snapshots.h5",
+        mode="h5",
+        *,
+        h5_key=None,
     ):
         """
         Load a snapshot into the CMCBrowser object.
 
         Parameters
         ----------
-        ss_name : str
-            The name of the snapshot to load.
+        model_name : str
+            The name of the model to load.
         distance : float
             The distance to use for the snapshot.
+        ss_name : str
+            The name of the snapshot to load. Either a hdf5 file or an dat.gz file.
+        mode : str
+            The mode to use for loading the snapshot. Must be one of ["h5", "dat.gz"].
+        h5_key : str
+            The key to use for the hdf5 snapshot. If None, will use the last key in the file. Only used if mode is "h5".
         """
+
+        # parse the output prefix from the snapshot name
+        prefix = ss_name.split(".")[0]
+
         # need to parse metallicity
         Z = float(model_name.split("Z")[-1])
+
         print(
             f"Loading Model: {model_name}, snapshot: {ss_name}, Z={Z}, distance={distance}"
         )
-        snap = ck.Snapshot(
-            fname=f"{self.ss_dir}/{model_name}/{ss_name}",
-            conv=f"{self.ss_dir}/{model_name}/initial.conv.sh",
-            z=Z,
-            dist=distance,
-        )
-        self.loaded_snapshots[f"{model_name}/{ss_name}"] = snap
+
+        if mode == "dat.gz":
+            snap = ck.Snapshot(
+                fname=f"{self.ss_dir}/{model_name}/{ss_name}",
+                conv=f"{self.ss_dir}/{model_name}/{prefix}.conv.sh",
+                z=Z,
+                dist=distance,
+            )
+            self.loaded_snapshots[f"{model_name}/{ss_name}"] = snap
+        elif mode == "h5":
+            snap = ck.Snapshot(
+                fname=f"{self.ss_dir}/{model_name}/{ss_name}",
+                conv=f"{self.ss_dir}/{model_name}/{prefix}.conv.sh",
+                snapshot_name=h5_key,
+                z=Z,
+                dist=distance,
+            )
+            # create a fresh copy of the data to avoid memory fragmentation
+            snap.data = snap.data.copy()
+            self.loaded_snapshots[f"{model_name}/{h5_key}"] = snap
 
     def download_new_model(self, N, rv, rg, Z):
         """
