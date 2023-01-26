@@ -123,6 +123,10 @@ class CMCBrowser:
             )
             # create a fresh copy of the data to avoid memory fragmentation
             snap.data = snap.data.copy()
+
+            # create a new column with the old mass column name for compatibility
+            snap.data["m[MSUN]"] = snap.data["m_MSUN"]
+
             self.loaded_snapshots[f"{model_name}/{h5_key}"] = snap
 
     def download_new_model(self, N, rv, rg, Z):
