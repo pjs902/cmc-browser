@@ -129,7 +129,7 @@ class CMCBrowser:
 
             self.loaded_snapshots[f"{model_name}/{h5_key}"] = snap
 
-    def download_new_model(self, N, rv, rg, Z):
+    def download_new_model(self, N, rv, rg, Z):  # pragma: no cover
         """
         Download new models from the CMC website. Will not download if the model already exists.
 
