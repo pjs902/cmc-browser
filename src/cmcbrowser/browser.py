@@ -5,6 +5,8 @@ import tarfile
 import os
 import time
 import h5py
+import numpy as np
+import pandas as pd
 
 import cmctoolkit as ck
 
@@ -33,7 +35,6 @@ class CMCBrowser:
         # enumerate the snapshots for each model
         self.model_snapshots = {}
         for model in self.models_list:
-
             # check first if there is a tar.gz snapshot
             snap_fn = glob.glob(f"{self.ss_dir}/{model}/initial.*.dat.gz")
             if len(snap_fn) == 0:
@@ -112,7 +113,11 @@ class CMCBrowser:
                 z=Z,
                 dist=distance,
             )
-            self.loaded_snapshots[f"{model_name}/{ss_name}"] = snap
+            # compatibility with old column names
+            snap.data["m_MSUN"] = snap.data["m[MSUN]"]
+            snap.data["m0_MSUN"] = snap.data["m0[MSUN]"]
+            snap.data["m1_MSUN"] = snap.data["m1[MSUN]"]
+            snap.name = f"{model_name}/{ss_name}"
         elif mode == "h5":
             snap = ck.Snapshot(
                 fname=f"{self.ss_dir}/{model_name}/{ss_name}",
@@ -126,7 +131,34 @@ class CMCBrowser:
 
             # create a new column with the old mass column name for compatibility
             snap.data["m[MSUN]"] = snap.data["m_MSUN"]
+            snap.data["m0[MSUN]"] = snap.data["m0_MSUN"]
+            snap.data["m1[MSUN]"] = snap.data["m1_MSUN"]
+            snap.name = f"{model_name}/{h5_key}"
 
+        # add some useful info
+        snap.mass = snap.data["m_MSUN"].sum()
+        snap.FeH = np.log10(snap.z / 0.02)
+
+        # BH info
+        snap.bh_masses = pd.concat(
+            [
+                snap.data.loc[(snap.data["startype"] == 14)]["m_MSUN"],
+                snap.data.loc[(snap.data["bin_startype0"] == 14)]["m0_MSUN"],
+                snap.data.loc[(snap.data["bin_startype1"] == 14)]["m1_MSUN"],
+            ],
+            axis=0,
+        ).to_list()
+        snap.M_BH = np.sum(snap.bh_masses)
+        snap.N_BH = len(snap.bh_masses)
+
+        # TODO: could eventually add this sort of stuff for WDs or anything else we're interested in
+
+        # half mass radius
+        snap.rh = snap.calculate_renclosed(enclosed_frac=0.5, qty="mass")
+
+        if mode == "dat.gz":
+            self.loaded_snapshots[f"{model_name}/{ss_name}"] = snap
+        elif mode == "h5":
             self.loaded_snapshots[f"{model_name}/{h5_key}"] = snap
 
     def download_new_model(self, N, rv, rg, Z):  # pragma: no cover
