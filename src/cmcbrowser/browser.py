@@ -139,6 +139,25 @@ class CMCBrowser:
         snap.mass = snap.data["m_MSUN"].sum()
         snap.FeH = np.log10(snap.z / 0.02)
 
+        # calculate the central escape velocity, using the gravitational potential at the center of the cluster and the tidal boundary
+        log_file = f"{self.ss_dir}/{model_name}/{prefix}.esc.dat"
+
+        # load the log file with pandas, delim is just a space
+        esc = pd.read_csv(log_file, delim_whitespace=True)
+
+        esc["t[Gyr]"] = esc["#2:t"]*snap.unitdict["myr"]/1000
+
+        # conversions to physical units, following https://github.com/tomas-cabrera/hvss-bsco/blob/main/src/scripts/cmc_single_clusters_vesc.py
+        nb_kms = 1e-5 * snap.unitdict["cm"] / snap.unitdict["nb_s"]
+        esc["#10:phi_rtidal"] *= nb_kms**2
+        esc["#11:phi_zero"] *= nb_kms**2
+
+        esc["vesc"] = np.sqrt(2*(esc["#10:phi_rtidal"]-esc["#11:phi_zero"]))
+
+        snap.vesc_initial = esc[esc["t[Gyr]"]<1]["vesc"].mean()
+        snap.vesc_final = esc["vesc"][-5000:].mean()
+        del esc
+
         # BH info
         snap.bh_masses = pd.concat(
             [
