@@ -145,7 +145,7 @@ class CMCBrowser:
         # load the log file with pandas, delim is just a space
         esc = pd.read_csv(log_file, delim_whitespace=True)
 
-        esc["t[Gyr]"] = esc["#2:t"] * snap.unitdict["myr"] / 1000
+        esc["t[Myr]"] = esc["#2:t"] * snap.unitdict["myr"]
 
         # conversions to physical units, following https://github.com/tomas-cabrera/hvss-bsco/blob/main/src/scripts/cmc_single_clusters_vesc.py
         nb_kms = 1e-5 * snap.unitdict["cm"] / snap.unitdict["nb_s"]
@@ -154,7 +154,7 @@ class CMCBrowser:
 
         esc["vesc"] = np.sqrt(2 * (esc["#10:phi_rtidal"] - esc["#11:phi_zero"]))
 
-        snap.vesc_initial = esc[esc["t[Gyr]"] < 1]["vesc"].mean()
+        snap.vesc_initial = esc[esc["t[Myr]"] < 20]["vesc"].mean()
         snap.vesc_final = esc["vesc"][-5000:].mean()
         del esc
 
