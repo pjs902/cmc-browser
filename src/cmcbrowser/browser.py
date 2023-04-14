@@ -117,6 +117,7 @@ class CMCBrowser:
             snap.data["m_MSUN"] = snap.data["m[MSUN]"]
             snap.data["m0_MSUN"] = snap.data["m0[MSUN]"]
             snap.data["m1_MSUN"] = snap.data["m1[MSUN]"]
+            snap.data["luminosity_LSUN"] = snap.data["luminosity[LSUN]"]
             snap.name = f"{model_name}/{ss_name}"
         elif mode == "h5":
             snap = ck.Snapshot(
@@ -133,6 +134,7 @@ class CMCBrowser:
             snap.data["m[MSUN]"] = snap.data["m_MSUN"]
             snap.data["m0[MSUN]"] = snap.data["m0_MSUN"]
             snap.data["m1[MSUN]"] = snap.data["m1_MSUN"]
+            snap.data["luminosity[LSUN]"] = snap.data["luminosity_LSUN"]
             snap.name = f"{model_name}/{h5_key}"
 
         # add some useful info
