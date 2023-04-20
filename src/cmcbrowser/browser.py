@@ -160,29 +160,6 @@ class CMCBrowser:
         snap.vesc_final = esc["vesc"][-5000:].mean()
         del esc
 
-        # BH info
-        snap.bh_masses = pd.concat(
-            [
-                snap.data.loc[(snap.data["startype"] == 14)]["m_MSUN"],
-                snap.data.loc[(snap.data["bin_startype0"] == 14)]["m0_MSUN"],
-                snap.data.loc[(snap.data["bin_startype1"] == 14)]["m1_MSUN"],
-            ],
-            axis=0,
-        ).to_list()
-        snap.M_BH = np.sum(snap.bh_masses)
-        snap.N_BH = len(snap.bh_masses)
-
-        snap.bh_radii = pd.concat(
-            [
-                snap.data.loc[(snap.data["startype"] == 14)]["d[PC]"],
-                snap.data.loc[(snap.data["bin_startype0"] == 14)]["d[PC]"],
-                snap.data.loc[(snap.data["bin_startype1"] == 14)]["d[PC]"],
-            ],
-            axis=0,
-        ).to_list()
-
-        # TODO: could eventually add this sort of stuff for WDs or anything else we're interested in
-
         # half mass radius
         snap.rh = snap.calculate_renclosed(enclosed_frac=0.5, qty="mass")
 
