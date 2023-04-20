@@ -170,6 +170,15 @@ class CMCBrowser:
         snap.M_BH = np.sum(snap.bh_masses)
         snap.N_BH = len(snap.bh_masses)
 
+        snap.bh_radii = pd.concat(
+            [
+                snap.data.loc[(snap.data["startype"] == 14)]["d[PC]"],
+                snap.data.loc[(snap.data["bin_startype0"] == 14)]["d[PC]"],
+                snap.data.loc[(snap.data["bin_startype1"] == 14)]["d[PC]"],
+            ],
+            axis=0,
+        ).to_list()
+
         # TODO: could eventually add this sort of stuff for WDs or anything else we're interested in
 
         # half mass radius
