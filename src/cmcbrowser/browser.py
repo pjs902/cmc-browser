@@ -142,10 +142,10 @@ class CMCBrowser:
         snap.FeH = np.log10(snap.z / 0.02)
 
         # calculate the central escape velocity, using the gravitational potential at the center of the cluster and the tidal boundary
-        log_file = f"{self.ss_dir}/{model_name}/{prefix}.esc.dat"
+        esc_log_file = f"{self.ss_dir}/{model_name}/{prefix}.esc.dat"
 
         # load the log file with pandas, delim is just a space
-        esc = pd.read_csv(log_file, delim_whitespace=True)
+        esc = pd.read_csv(esc_log_file, delim_whitespace=True)
 
         esc["t[Myr]"] = esc["#2:t"] * snap.unitdict["myr"]
 
@@ -159,6 +159,16 @@ class CMCBrowser:
         snap.vesc_initial = esc[esc["t[Myr]"] < 20]["vesc"].mean()
         snap.vesc_final = esc["vesc"][-5000:].mean()
         del esc
+
+        # initial cluster mass
+        dyn_log_file = f"{self.ss_dir}/{model_name}/{prefix}.dyn.dat"
+
+        # load the log file with pandas, delim is just a space
+        dyn = pd.read_csv(dyn_log_file, delim_whitespace=True, skiprows=1)
+
+        # get the initial mass
+        snap.initial_mass = dyn["#5:M"][0] * snap.unitdict["msun"]
+        del dyn
 
         # half mass radius
         snap.rh = snap.calculate_renclosed(enclosed_frac=0.5, qty="mass")
