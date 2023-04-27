@@ -171,8 +171,6 @@ class CMCBrowser:
         # convert to pc
         snap.rtidal *= snap.unitdict["pc"]
 
-        print(f"{snap.rtidal = }")
-
         del esc
 
         # initial cluster mass
@@ -197,9 +195,6 @@ class CMCBrowser:
 
         # convert to pc
         snap.rcore *= snap.unitdict["pc"]
-
-        print(f"{snap.rcore = }")
-
 
         del dyn
 
