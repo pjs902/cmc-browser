@@ -7,6 +7,7 @@ import time
 import h5py
 import numpy as np
 import pandas as pd
+import scipy as sp
 
 import cmctoolkit as ck
 
@@ -158,6 +159,20 @@ class CMCBrowser:
 
         snap.vesc_initial = esc[esc["t[Myr]"] < 20]["vesc"].mean()
         snap.vesc_final = esc["vesc"][-5000:].mean()
+
+        # while we have the escape logs open, get the tidal radius at the current time
+        # need to interpolate to get the tidal radius at the current time
+
+        rtidal_interp = sp.interpolate.interp1d(
+            esc["t[Myr]"], esc["#9:Rtidal"], kind="linear", bounds_error=True
+        )
+        snap.rtidal = float(rtidal_interp(snap.age * 1000))
+
+        # convert to pc
+        snap.rtidal *= snap.unitdict["pc"]
+
+        print(f"{snap.rtidal = }")
+
         del esc
 
         # initial cluster mass
@@ -168,6 +183,24 @@ class CMCBrowser:
 
         # get the initial mass
         snap.initial_mass = dyn["#5:M"][0] * snap.unitdict["msun"]
+
+
+        # while we have the dynamics logs open, get the core radius at the current time
+        # need to interpolate to get the core radius at the current time
+
+        dyn["t[Myr]"] = dyn["#1:t"] * snap.unitdict["myr"]
+
+        rcore_interp = sp.interpolate.interp1d(
+            dyn["t[Myr]"], dyn["#8:r_c"], kind="linear", bounds_error=True
+        )
+        snap.rcore = float(rcore_interp(snap.age * 1000))
+
+        # convert to pc
+        snap.rcore *= snap.unitdict["pc"]
+
+        print(f"{snap.rcore = }")
+
+
         del dyn
 
         # half mass radius
