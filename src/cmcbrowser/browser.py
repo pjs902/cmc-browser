@@ -182,7 +182,6 @@ class CMCBrowser:
         # get the initial mass
         snap.initial_mass = dyn["#5:M"][0] * snap.unitdict["msun"]
 
-
         # while we have the dynamics logs open, get the core radius at the current time
         # need to interpolate to get the core radius at the current time
 
