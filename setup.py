@@ -9,7 +9,7 @@ setup(  # pragma: no cover
     license="MIT",
     description="Interact with CMC models on disk",
     copyright="Copyright 2022 Peter Smith",
-    python_requires=">=3.10",
+    python_requires=">=3.9",
     version="0.1.0",
     include_package_data=True,
 )
