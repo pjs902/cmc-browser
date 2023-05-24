@@ -195,6 +195,18 @@ class CMCBrowser:
         # convert to pc
         snap.rcore *= snap.unitdict["pc"]
 
+
+        # TODO save the mass, half mass radius, tidal radius, and core radius over time to the snapshot object
+        # should save time, mass, rh, rtidal, rcore all in a dict, with the units converted to physical units
+
+        snap.evolutionary_quantities = {}
+        snap.evolutionary_quantities["time_Gyr"] = dyn["t[Myr]"].values * snap.unitdict["myr"] / 1000
+        snap.evolutionary_quantities["cluster_mass_MSUN"] = dyn["#5:M"].values * snap.unitdict["msun"]
+        snap.evolutionary_quantities["rh_pc"] = dyn["#21:r_h"].values * snap.unitdict["pc"]
+        snap.evolutionary_quantities["rtidal_pc"] = dyn["#9:Rtidal"].values * snap.unitdict["pc"]
+        snap.evolutionary_quantities["rcore_pc"] = dyn["#8:r_c"].values * snap.unitdict["pc"]
+
+
         del dyn
 
         # half mass radius
