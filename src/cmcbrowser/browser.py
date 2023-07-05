@@ -44,7 +44,7 @@ class CMCBrowser:
 
                 # enumerate the datasets in the hdf5 file
                 with h5py.File(snap_fn[0], "r") as f:
-                    snap_fn = [ss for ss in f.keys()]
+                    snap_fn = list(f.keys())
 
             # save the snapshot filenames
             self.model_snapshots[model] = snap_fn
@@ -79,6 +79,7 @@ class CMCBrowser:
         mode="h5",
         *,
         h5_key=None,
+        strict=True,
     ):
         """
         Load a snapshot into the CMCBrowser object.
@@ -94,7 +95,11 @@ class CMCBrowser:
         mode : str
             The mode to use for loading the snapshot. Must be one of ["h5", "dat.gz"].
         h5_key : str
-            The key to use for the hdf5 snapshot. If None, will use the last key in the file. Only used if mode is "h5".
+            The key to use for the hdf5 snapshot. If None, will use the last key in the file. Only
+            used if mode is "h5".
+        strict : bool
+            If True, will raise an error if quantities like the tidal radius or core radius are not
+            able to be interpolated. If False, will set these quantities to np.nan.
         """
 
         # parse the output prefix from the snapshot name
@@ -163,10 +168,18 @@ class CMCBrowser:
         # while we have the escape logs open, get the tidal radius at the current time
         # need to interpolate to get the tidal radius at the current time
 
-        rtidal_interp = sp.interpolate.interp1d(
-            esc["t[Myr]"], esc["#9:Rtidal"], kind="linear", bounds_error=True
-        )
-        snap.rtidal = float(rtidal_interp(snap.age * 1000))
+        try:
+            rtidal_interp = sp.interpolate.interp1d(
+                esc["t[Myr]"], esc["#9:Rtidal"], kind="linear", bounds_error=True
+            )
+            snap.rtidal = float(rtidal_interp(snap.age * 1000))
+        except ValueError:
+            if strict:
+                raise ValueError(
+                    f"Unable to interpolate tidal radius for model {model_name} at time {snap.age}"
+                ) from None
+            else:
+                snap.rtidal = np.nan
 
         # convert to pc
         snap.rtidal *= snap.unitdict["pc"]
@@ -185,10 +198,18 @@ class CMCBrowser:
 
         dyn["t[Myr]"] = dyn["#1:t"] * snap.unitdict["myr"]
 
-        rcore_interp = sp.interpolate.interp1d(
-            dyn["t[Myr]"], dyn["#8:r_c"], kind="linear", bounds_error=True
-        )
-        snap.rcore = float(rcore_interp(snap.age * 1000))
+        try:
+            rcore_interp = sp.interpolate.interp1d(
+                dyn["t[Myr]"], dyn["#8:r_c"], kind="linear", bounds_error=True
+            )
+            snap.rcore = float(rcore_interp(snap.age * 1000))
+        except ValueError:
+            if strict:
+                raise ValueError(
+                    f"Unable to interpolate core radius for model {model_name} at time {snap.age}"
+                ) from None
+            else:
+                snap.rcore = np.nan
 
         # convert to pc
         snap.rcore *= snap.unitdict["pc"]
