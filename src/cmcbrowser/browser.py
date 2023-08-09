@@ -255,7 +255,7 @@ class CMCBrowser:
         r = snap.data["r"]
         M_cdf = np.cumsum(snap.data["m[MSUN]"]) / np.sum(snap.data["m[MSUN]"])
         rh = sp.interpolate.interp1d(y=r, x=M_cdf, kind="cubic")(0.5)
-        snap.rh = rh
+        snap.rh = float(rh)
 
         if mode == "dat.gz":
             self.loaded_snapshots[f"{model_name}/{ss_name}"] = snap
