@@ -217,15 +217,15 @@ class CMCBrowser:
         # save the mass, half mass radius, tidal radius, and core radius over time to the snapshot object
 
         snap.evolutionary_quantities = {}
-        snap.evolutionary_quantities["time_Gyr"] = dyn["t[Myr]"].values / 1000
+        snap.evolutionary_quantities["time_Gyr"] = dyn["t[Myr]"].to_numpy() / 1000
         snap.evolutionary_quantities["cluster_mass_MSUN"] = (
-            dyn["#5:M"].values * snap.unitdict["msun"]
+            dyn["#5:M"].to_numpy() * snap.unitdict["msun"]
         )
         snap.evolutionary_quantities["rh_pc"] = (
-            dyn["#21:r_h"].values * snap.unitdict["pc"]
+            dyn["#21:r_h"].to_numpy() * snap.unitdict["pc"]
         )
         snap.evolutionary_quantities["rcore_pc"] = (
-            dyn["#8:r_c"].values * snap.unitdict["pc"]
+            dyn["#8:r_c"].to_numpy() * snap.unitdict["pc"]
         )
 
         # do the same thing with the BH logs, we want to know the number of BHs over time
@@ -239,10 +239,10 @@ class CMCBrowser:
         bh["t[Myr]"] = bh["#2:TotalTime"] * snap.unitdict["myr"]
 
         # save the number of BHs over time to the snapshot object
-        snap.evolutionary_quantities["n_bh"] = bh["#3:Nbh,tot"].values
+        snap.evolutionary_quantities["n_bh"] = bh["#3:Nbh,tot"].to_numpy()
 
         # save the bh timestamps too
-        snap.evolutionary_quantities["bh_time_Gyr"] = bh["t[Myr]"].values / 1000
+        snap.evolutionary_quantities["bh_time_Gyr"] = bh["t[Myr]"].to_numpy() / 1000
 
         # delete the pandas dataframes to free up memory
         del esc
