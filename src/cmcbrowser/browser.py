@@ -173,12 +173,15 @@ class CMCBrowser:
                 esc["t[Myr]"], esc["#9:Rtidal"], kind="linear", bounds_error=True
             )
             snap.rtidal = float(rtidal_interp(snap.age * 1000))
-        except ValueError:
+        except ValueError as e:
             if strict:
                 raise ValueError(
-                    f"Unable to interpolate tidal radius for model {model_name} at time {snap.age}"
+                    f"Unable to interpolate tidal radius for model {model_name} at time {snap.age}, error: {e}"
                 ) from None
             else:
+                print(
+                    f"Unable to interpolate tidal radius for model {model_name} at time {snap.age}, error: {e}"
+                )
                 snap.rtidal = np.nan
 
         # convert to pc
@@ -228,6 +231,22 @@ class CMCBrowser:
             dyn["#8:r_c"].to_numpy() * snap.unitdict["pc"]
         )
 
+        # grab the central density too
+        snap.evolutionary_quantities["rho0_MSUN_pc3"] = (
+            dyn["#22:rho_0"].to_numpy()
+            * snap.unitdict["msun"]
+            / snap.unitdict["pc"] ** 3
+        )
+
+        # also just save the current central density, interpolated from the log file
+        rho0_interp = sp.interpolate.interp1d(
+            dyn["t[Myr]"], dyn["#22:rho_0"], kind="linear", bounds_error=True
+        )
+        rho0_MSUN_pc3 = float(rho0_interp(snap.age * 1000))
+        snap.rho0_MSUN_pc3 = (
+            rho0_MSUN_pc3 * snap.unitdict["msun"] / snap.unitdict["pc"] ** 3
+        )
+
         # do the same thing with the BH logs, we want to know the number of BHs over time
 
         bh_log_file = f"{self.ss_dir}/{model_name}/{prefix}.bh.dat"
@@ -250,11 +269,28 @@ class CMCBrowser:
         del bh
 
         # half mass radius
-        # snap.rh = snap.calculate_renclosed(enclosed_frac=0.5, qty="mass")
-        # TODO: why does this number not match a manual calculation??
         r = snap.data["r"]
         M_cdf = np.cumsum(snap.data["m[MSUN]"]) / np.sum(snap.data["m[MSUN]"])
-        rh = sp.interpolate.interp1d(y=r, x=M_cdf, kind="cubic")(0.5)
+        try:
+            # try with scipy interp1d first
+            rh = sp.interpolate.interp1d(y=r, x=M_cdf, kind="linear")(0.5)
+            rh = float(rh)
+        except ValueError:
+            # if that fails, try with numpy interp
+            try:
+                rh = np.interp(0.5, M_cdf, r)
+            except ValueError as e:
+                # if that fails, raise the error
+                if strict:
+                    raise ValueError(
+                        f"Unable to interpolate half mass radius for model {model_name} at time {snap.age}, error: {e}"
+                    ) from None
+                else:
+                    print(
+                        f"Unable to interpolate half mass radius for model {model_name} at time {snap.age}, error: {e}"
+                    )
+                    rh = np.nan
+
         snap.rh = float(rh)
 
         if mode == "dat.gz":
