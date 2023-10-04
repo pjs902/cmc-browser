@@ -172,7 +172,7 @@ class CMCBrowser:
             rtidal_interp = sp.interpolate.interp1d(
                 esc["t[Myr]"], esc["#9:Rtidal"], kind="linear", bounds_error=True
             )
-            snap.rtidal = float(rtidal_interp(snap.age * 1000))
+            snap.rtidal = float(rtidal_interp(snap.age * 1000)) * snap.unitdict["pc"]
         except ValueError as e:
             if strict:
                 raise ValueError(
@@ -205,7 +205,7 @@ class CMCBrowser:
             rcore_interp = sp.interpolate.interp1d(
                 dyn["t[Myr]"], dyn["#8:r_c"], kind="linear", bounds_error=True
             )
-            snap.rcore = float(rcore_interp(snap.age * 1000))
+            snap.rcore = float(rcore_interp(snap.age * 1000)) * snap.unitdict["pc"]
         except ValueError:
             if strict:
                 raise ValueError(
@@ -291,6 +291,8 @@ class CMCBrowser:
                     )
                     rh = np.nan
 
+        # convert to pc
+        rh *= snap.unitdict["pc"]
         snap.rh = float(rh)
 
         if mode == "dat.gz":
