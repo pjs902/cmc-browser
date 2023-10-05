@@ -295,6 +295,13 @@ class CMCBrowser:
         rh *= snap.unitdict["pc"]
         snap.rh = float(rh)
 
+        # calculate the half mass relaxation time, here using eq 7.108 from Binney and Tremaine
+        N = len(snap.data["m[MSUN]"])
+        G = 4.3e-3  # pc^3 Msun^-1 Myr^-2
+        trh = (0.17 * N) / (np.log(0.1 * N)) * np.sqrt(rh**3 / (G * snap.mass))
+        # convert to Gyr
+        snap.Trh = trh / 1000
+
         if mode == "dat.gz":
             self.loaded_snapshots[f"{model_name}/{ss_name}"] = snap
         elif mode == "h5":
