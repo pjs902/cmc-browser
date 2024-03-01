@@ -42,24 +42,42 @@ class CMCBrowser:
                 # check instead for the hdf5 snapshot
                 snap_fn = glob.glob(f"{self.ss_dir}/{model}/*.window.snapshots.h5")
 
+                # check also regular hdf5 snapshots
+                snap_fn_reg = glob.glob(f"{self.ss_dir}/{model}/*.snapshots.h5")
+
+                # remove the window snapshots from the regular snapshots
+                snap_fn = list(set(snap_fn_reg) - set(snap_fn))
+
+                # if no hdf5 snapshots, set to None
                 if len(snap_fn) == 0:
                     snap_fn = None
                 else:
-
                     # enumerate the datasets in the hdf5 file
                     with h5py.File(snap_fn[0], "r") as f:
                         snap_fn = list(f.keys())
 
+                # do the same for the regular snapshots
+                if len(snap_fn_reg) == 0:
+                    snap_fn_reg = None
+                else:
+                    with h5py.File(snap_fn_reg[0], "r") as f:
+                        snap_fn_reg = list(f.keys())
+
             # save the snapshot filenames
             self.model_snapshots[model] = snap_fn
+            self.model_snapshots_regular = snap_fn_reg
 
         # remove directory from snapshot name
         for model in self.models_list:
             if self.model_snapshots[model] is None:
                 continue
-            self.model_snapshots[model] = [
-                ss.split("/")[-1] for ss in self.model_snapshots[model]
-            ]
+            self.model_snapshots[model] = [ss.split("/")[-1] for ss in self.model_snapshots[model]]
+
+        # remove directory from snapshot name
+        for model in self.models_list:
+            if self.model_snapshots_regular[model] is None:
+                continue
+            self.model_snapshots_regular[model] = [ss.split("/")[-1] for ss in self.model_snapshots_regular[model]]
 
     def list_models(self):
         """
@@ -114,9 +132,7 @@ class CMCBrowser:
         # need to parse metallicity
         Z = float(model_name.split("Z")[-1])
 
-        print(
-            f"Loading Model: {model_name}, snapshot: {ss_name}, Z={Z}, distance={distance}"
-        )
+        print(f"Loading Model: {model_name}, snapshot: {ss_name}, Z={Z}, distance={distance}")
 
         if mode == "dat.gz":
             snap = ck.Snapshot(
@@ -175,9 +191,7 @@ class CMCBrowser:
         # need to interpolate to get the tidal radius at the current time
 
         try:
-            rtidal_interp = sp.interpolate.interp1d(
-                esc["t[Myr]"], esc["#9:Rtidal"], kind="linear", bounds_error=True
-            )
+            rtidal_interp = sp.interpolate.interp1d(esc["t[Myr]"], esc["#9:Rtidal"], kind="linear", bounds_error=True)
             snap.rtidal = float(rtidal_interp(snap.age * 1000)) * snap.unitdict["pc"]
         except ValueError as e:
             if strict:
@@ -185,9 +199,7 @@ class CMCBrowser:
                     f"Unable to interpolate tidal radius for model {model_name} at time {snap.age}, error: {e}"
                 ) from None
             else:
-                print(
-                    f"Unable to interpolate tidal radius for model {model_name} at time {snap.age}, error: {e}"
-                )
+                print(f"Unable to interpolate tidal radius for model {model_name} at time {snap.age}, error: {e}")
                 snap.rtidal = np.nan
 
         # convert to pc
@@ -208,9 +220,7 @@ class CMCBrowser:
         dyn["t[Myr]"] = dyn["#1:t"] * snap.unitdict["myr"]
 
         try:
-            rcore_interp = sp.interpolate.interp1d(
-                dyn["t[Myr]"], dyn["#8:r_c"], kind="linear", bounds_error=True
-            )
+            rcore_interp = sp.interpolate.interp1d(dyn["t[Myr]"], dyn["#8:r_c"], kind="linear", bounds_error=True)
             snap.rcore = float(rcore_interp(snap.age * 1000)) * snap.unitdict["pc"]
         except ValueError:
             if strict:
@@ -227,31 +237,19 @@ class CMCBrowser:
 
         snap.evolutionary_quantities = {}
         snap.evolutionary_quantities["time_Gyr"] = dyn["t[Myr]"].to_numpy() / 1000
-        snap.evolutionary_quantities["cluster_mass_MSUN"] = (
-            dyn["#5:M"].to_numpy() * snap.unitdict["msun"]
-        )
-        snap.evolutionary_quantities["rh_pc"] = (
-            dyn["#21:r_h"].to_numpy() * snap.unitdict["pc"]
-        )
-        snap.evolutionary_quantities["rcore_pc"] = (
-            dyn["#8:r_c"].to_numpy() * snap.unitdict["pc"]
-        )
+        snap.evolutionary_quantities["cluster_mass_MSUN"] = dyn["#5:M"].to_numpy() * snap.unitdict["msun"]
+        snap.evolutionary_quantities["rh_pc"] = dyn["#21:r_h"].to_numpy() * snap.unitdict["pc"]
+        snap.evolutionary_quantities["rcore_pc"] = dyn["#8:r_c"].to_numpy() * snap.unitdict["pc"]
 
         # grab the central density too
         snap.evolutionary_quantities["rho0_MSUN_pc3"] = (
-            dyn["#22:rho_0"].to_numpy()
-            * snap.unitdict["msun"]
-            / snap.unitdict["pc"] ** 3
+            dyn["#22:rho_0"].to_numpy() * snap.unitdict["msun"] / snap.unitdict["pc"] ** 3
         )
 
         # also just save the current central density, interpolated from the log file
-        rho0_interp = sp.interpolate.interp1d(
-            dyn["t[Myr]"], dyn["#22:rho_0"], kind="linear", bounds_error=True
-        )
+        rho0_interp = sp.interpolate.interp1d(dyn["t[Myr]"], dyn["#22:rho_0"], kind="linear", bounds_error=True)
         rho0_MSUN_pc3 = float(rho0_interp(snap.age * 1000))
-        snap.rho0_MSUN_pc3 = (
-            rho0_MSUN_pc3 * snap.unitdict["msun"] / snap.unitdict["pc"] ** 3
-        )
+        snap.rho0_MSUN_pc3 = rho0_MSUN_pc3 * snap.unitdict["msun"] / snap.unitdict["pc"] ** 3
 
         # do the same thing with the BH logs, we want to know the number of BHs over time
 
@@ -336,9 +334,7 @@ class CMCBrowser:
         The largest models with N=3.2e6 are only computed for a subset of the possible parameters.
 
         """
-        base_url = (
-            "https://cmc.ciera.northwestern.edu/download-cluster/download-cluster/"
-        )
+        base_url = "https://cmc.ciera.northwestern.edu/download-cluster/download-cluster/"
 
         possible_Ns = ["1.6e6", "2e5", "3.2e6", "4e5", "8e5"]
         possible_rvs = ["0.5", "1", "2", "4"]
@@ -400,9 +396,7 @@ class CMCBrowser:
         self.models_list.append(model_name)
 
         # add snapshots to the list of snapshots
-        self.model_snapshots[model_name] = glob.glob(
-            f"{self.ss_dir}/{model_name}/initial.*.dat.gz"
-        )
+        self.model_snapshots[model_name] = glob.glob(f"{self.ss_dir}/{model_name}/initial.*.dat.gz")
 
         # print done and time taken
         print(f"Done! Took {time.time() - start_time} seconds")
