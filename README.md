@@ -4,7 +4,7 @@ This small library has two main purposes, managing a local grid of CMC models an
 loading of CMC snapshots.
 
 On the managing side of things, this library will index all models and snapshots in a given
-directory and also allow for the automated downloading of new CMC models from the web server.
+directory and also allows for the automated downloading of new CMC models from the web server.
 
 Here's an example of a simple workflow, indexing some local models, listing the snapshots of a model
 and downloading a new model:
@@ -46,7 +46,7 @@ initial.snap0036.dat.gz
 initial.snap0000.dat.gz
 ```
 
-On the loading side of things this library augments the Snapshot loading functionality provided by
+On the loading side of things, this library augments the Snapshot loading functionality provided by
 [cmctoolkit](https://github.com/NicholasRui/cmctoolkit).
 
 Most of this functionality is convenience, like parsing the metallicity from the model name or
@@ -90,3 +90,8 @@ b.download_new_model(N="4e5", rv="1", rg="20", Z="0.0002")
 
 Which will construct the appropriate URL, send the request to the CMC web server, download the
 model, unpack it, add it the existing grid, index the snapshots and clean up any leftover files.
+
+
+## See also
+
+[`cmc-obs`](https://github.com/pjs902/cmc-obs): Another small library which takes in a `Snapshot` object from `cmc-browser` and extracts a series of mock observations, designed to be as realistic as possible. 
