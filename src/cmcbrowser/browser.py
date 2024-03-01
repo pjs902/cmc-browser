@@ -48,7 +48,7 @@ class CMCBrowser:
                 # remove the window snapshots from the regular snapshots
                 snap_fn = list(set(snap_fn_reg) - set(snap_fn))
 
-                # if no hdf5 snapshots, set to None
+                # if no window snapshots, set to None
                 if len(snap_fn) == 0:
                     snap_fn = None
                 else:
@@ -65,7 +65,7 @@ class CMCBrowser:
 
             # save the snapshot filenames
             self.model_snapshots[model] = snap_fn
-            self.model_snapshots_regular = snap_fn_reg
+            self.model_snapshots_regular[model] = snap_fn_reg
 
         # remove directory from snapshot name
         for model in self.models_list:
