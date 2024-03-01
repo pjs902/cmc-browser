@@ -92,6 +92,10 @@ Which will construct the appropriate URL, send the request to the CMC web server
 model, unpack it, add it the existing grid, index the snapshots and clean up any leftover files.
 
 
+### To Do
+- Fix/clean up the handling of window vs regular snapshots
+
+
 ## See also
 
 [`cmc-obs`](https://github.com/pjs902/cmc-obs): Another small library which takes in a `Snapshot` object from `cmc-browser` and extracts a series of mock observations, designed to be as realistic as possible. 
