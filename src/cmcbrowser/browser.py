@@ -35,6 +35,7 @@ class CMCBrowser:
 
         # enumerate the snapshots for each model
         self.model_snapshots = {}
+        self.model_snapshots_regular = {}
         for model in self.models_list:
             # check first if there is a tar.gz snapshot
             snap_fn = glob.glob(f"{self.ss_dir}/{model}/initial.*.dat.gz")
