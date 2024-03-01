@@ -55,8 +55,10 @@ class CMCBrowser:
 
         # remove directory from snapshot name
         for model in self.models_list:
+            if self.model_snapshots[model] is None:
+                continue
             self.model_snapshots[model] = [
-                ss.split("/")[-1] for ss in self.model_snapshots[model] if ss is not None
+                ss.split("/")[-1] for ss in self.model_snapshots[model]
             ]
 
     def list_models(self):
