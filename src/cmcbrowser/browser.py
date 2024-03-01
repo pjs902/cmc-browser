@@ -42,9 +42,13 @@ class CMCBrowser:
                 # check instead for the hdf5 snapshot
                 snap_fn = glob.glob(f"{self.ss_dir}/{model}/*.window.snapshots.h5")
 
-                # enumerate the datasets in the hdf5 file
-                with h5py.File(snap_fn[0], "r") as f:
-                    snap_fn = list(f.keys())
+                if len(snap_fn) == 0:
+                    snap_fn = None
+                else:
+
+                    # enumerate the datasets in the hdf5 file
+                    with h5py.File(snap_fn[0], "r") as f:
+                        snap_fn = list(f.keys())
 
             # save the snapshot filenames
             self.model_snapshots[model] = snap_fn
