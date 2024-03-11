@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cmc-browser"
+version = "0.1.0"
+description = "Interact with CMC models on disk"
+readme = "README.md"
+authors = [
+    {name = "Peter Smith", email = "smith.peter.902@gmail.com"},
+]
+license = { file = "LICENSE" }
+
+[project.urls]
+homepage = "https://github.com/pjs902/cmc-browser"
