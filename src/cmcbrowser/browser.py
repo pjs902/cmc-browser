@@ -48,8 +48,6 @@ class CMCBrowser:
                 # check also regular hdf5 snapshots
                 snap_fn_reg = glob.glob(f"{self.ss_dir}/{model}/{model_prefix}.snapshots.h5")
 
-                print(snap_fn_window)
-                print(snap_fn_reg)
 
                 # if no window snapshots, set to None
                 if len(snap_fn_window) == 0:
@@ -58,7 +56,6 @@ class CMCBrowser:
                     # enumerate the datasets in the hdf5 file
                     with h5py.File(snap_fn_window[0], "r") as f:
                         snap_fn_window = list(f.keys())
-                        print(snap_fn_window)
 
                 # do the same for the regular snapshots
                 if len(snap_fn_reg) == 0:
@@ -66,7 +63,6 @@ class CMCBrowser:
                 else:
                     with h5py.File(snap_fn_reg[0], "r") as f:
                         snap_fn_reg = list(f.keys())
-                        print(snap_fn_reg)
             else:
                 snap_fn_window = None
                 snap_fn_reg = tar_fns
