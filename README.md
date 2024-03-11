@@ -41,6 +41,7 @@ b.list_snapshots(model_name="N2e5_rv0.5_rg2_Z0.02")
 
 ```shell
 Found the following snapshots:
+Regular Snapshots:
 initial.snap0489.dat.gz
 initial.snap0036.dat.gz
 initial.snap0000.dat.gz
@@ -89,11 +90,7 @@ b.download_new_model(N="4e5", rv="1", rg="20", Z="0.0002")
 ```
 
 Which will construct the appropriate URL, send the request to the CMC web server, download the
-model, unpack it, add it the existing grid, index the snapshots and clean up any leftover files.
-
-
-### To Do
-- Fix/clean up the handling of window vs regular snapshots
+model, unpack it, add it to the existing grid, index the snapshots and clean up any leftover files.
 
 
 ## See also
