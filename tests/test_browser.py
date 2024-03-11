@@ -1,36 +1,54 @@
 from cmcbrowser import CMCBrowser
-import pytest
+from tqdm import tqdm
 
 
-def test_gzip_snapshot():
+def test_all_snapshot_types():
+    b = CMCBrowser(ss_dir="/home/peter/research/CMC-grid/grid/")
 
-    browser = CMCBrowser()
+    print("Found the following models:")
+    print(b.models_list)
 
-    browser.load_snapshot(
-        model_name="N4e5_rv1_rg8_Z0.02",
-        ss_name="initial.snap0147.dat.gz",
-        distance=5.0,
-        mode="dat.gz",
-    )
+    for model in tqdm(b.models_list):
+        print(f"Testing regular snapshots for model: {model}")
+
+        snaps_regular = b.model_snapshots[model]["regular"]
+        for ss in snaps_regular:
+            if "dat.gz" in ss:
+                b.load_snapshot(
+                    model_name=model,
+                    ss_name=ss,
+                    distance=5,
+                    mode="dat.gz",
+                    strict=False,
+                )
+
+                snap = b.loaded_snapshots[f"{model}/{ss}"]
+                print("Successfully loaded snapshot")
+                break
+
+            else:
+                b.load_snapshot(
+                    model_name=model, ss_name="king.snapshots.h5", distance=5, mode="h5", strict=False, h5_key=ss
+                )
+                snap = b.loaded_snapshots[f"{model}/{ss}"]
+                print("Successfully loaded snapshot")
+                break
+
+        print("Testing window snapshots for model: {model}")
+        snaps_window = b.model_snapshots[model]["window"]
+
+        if snaps_window is None:
+            print(f"No window snapshots for {model}")
+            continue
+
+        for ss in snaps_window:
+            b.load_snapshot(
+                model_name=model, ss_name="king.window.snapshots.h5", distance=5, mode="h5", strict=False, h5_key=ss
+            )
+            snap = b.loaded_snapshots[f"{model}/{ss}"]
+            print("Successfully loaded snapshot")
+            break
 
 
-def test_h5_snapshot():
-
-    browser = CMCBrowser()
-
-    browser.load_snapshot(
-        model_name="N2e5_rv0.5_rg20_Z0.02",
-        ss_name="king.window.snapshots.h5",
-        distance=5,
-        h5_key="8(t=12.000067Gyr)",
-    )
-
-
-def test_list_models():
-    browser = CMCBrowser()
-    browser.list_models()
-
-
-def test_list_snapshots():
-    browser = CMCBrowser()
-    browser.list_snapshots(model_name="N4e5_rv1_rg8_Z0.02")
+if __name__ == "__main__":
+    test_all_snapshot_types()
