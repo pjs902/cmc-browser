@@ -160,10 +160,16 @@ class CMCBrowser:
             snap.data = snap.data.copy()
 
             # create a new column with the old mass column name for compatibility
-            snap.data["m[MSUN]"] = snap.data["m_MSUN"]
-            snap.data["m0[MSUN]"] = snap.data["m0_MSUN"]
-            snap.data["m1[MSUN]"] = snap.data["m1_MSUN"]
-            snap.data["luminosity[LSUN]"] = snap.data["luminosity_LSUN"]
+            if "m[MSUN]" in snap.data.columns:
+                snap.data["m_MSUN"] = snap.data["m[MSUN]"]
+                snap.data["m0_MSUN"] = snap.data["m0[MSUN]"]
+                snap.data["m1_MSUN"] = snap.data["m1[MSUN]"]
+                snap.data["luminosity_LSUN"] = snap.data["luminosity[LSUN]"]
+            elif "m_MSUN" in snap.data.columns:
+                snap.data["m[MSUN]"] = snap.data["m_MSUN"]
+                snap.data["m0[MSUN]"] = snap.data["m0_MSUN"]
+                snap.data["m1[MSUN]"] = snap.data["m1_MSUN"]
+                snap.data["luminosity[LSUN]"] = snap.data["luminosity_LSUN"]
             snap.name = f"{model_name}/{h5_key}"
 
         # add some useful info
@@ -174,7 +180,7 @@ class CMCBrowser:
         esc_log_file = f"{self.ss_dir}/{model_name}/{prefix}.esc.dat"
 
         # load the log file with pandas, delim is just a space
-        esc = pd.read_csv(esc_log_file, delim_whitespace=True)
+        esc = pd.read_csv(esc_log_file, sep="\s+")
 
         esc["t[Myr]"] = esc["#2:t"] * snap.unitdict["myr"]
 
@@ -192,13 +198,19 @@ class CMCBrowser:
         # need to interpolate to get the tidal radius at the current time
 
         try:
-            rtidal_interp = sp.interpolate.interp1d(esc["t[Myr]"], esc["#9:Rtidal"], kind="linear", bounds_error=True)
+            # fill outside values with the first and last value
+            rtidal_interp = sp.interpolate.interp1d(
+                esc["t[Myr]"],
+                esc["#9:Rtidal"],
+                kind="linear",
+                bounds_error=False,
+                fill_value=(esc["#9:Rtidal"].iloc[0], esc["#9:Rtidal"].iloc[-1]),
+            )
             snap.rtidal = float(rtidal_interp(snap.age * 1000)) * snap.unitdict["pc"]
         except ValueError as e:
             if strict:
-                raise ValueError(
-                    f"Unable to interpolate tidal radius for model {model_name} at time {snap.age}, error: {e}"
-                ) from None
+                msg = f"Unable to interpolate tidal radius for model {model_name} at time {snap.age}, error: {e}"
+                raise ValueError(msg) from None
             else:
                 print(f"Unable to interpolate tidal radius for model {model_name} at time {snap.age}, error: {e}")
                 snap.rtidal = np.nan
@@ -210,7 +222,7 @@ class CMCBrowser:
         dyn_log_file = f"{self.ss_dir}/{model_name}/{prefix}.dyn.dat"
 
         # load the log file with pandas, delim is just a space
-        dyn = pd.read_csv(dyn_log_file, delim_whitespace=True, skiprows=1)
+        dyn = pd.read_csv(dyn_log_file, skiprows=1, sep="\s+")
 
         # get the initial mass
         snap.initial_mass = dyn["#5:M"][0] * snap.unitdict["msun"]
@@ -221,13 +233,18 @@ class CMCBrowser:
         dyn["t[Myr]"] = dyn["#1:t"] * snap.unitdict["myr"]
 
         try:
-            rcore_interp = sp.interpolate.interp1d(dyn["t[Myr]"], dyn["#8:r_c"], kind="linear", bounds_error=True)
+            rcore_interp = sp.interpolate.interp1d(
+                dyn["t[Myr]"],
+                dyn["#8:r_c"],
+                kind="linear",
+                bounds_error=False,
+                fill_value=(dyn["#8:r_c"].iloc[0], dyn["#8:r_c"].iloc[-1]),
+            )
             snap.rcore = float(rcore_interp(snap.age * 1000)) * snap.unitdict["pc"]
         except ValueError:
             if strict:
-                raise ValueError(
-                    f"Unable to interpolate core radius for model {model_name} at time {snap.age}"
-                ) from None
+                msg = f"Unable to interpolate core radius for model {model_name} at time {snap.age}"
+                raise ValueError(msg) from None
             else:
                 snap.rcore = np.nan
 
@@ -248,7 +265,13 @@ class CMCBrowser:
         )
 
         # also just save the current central density, interpolated from the log file
-        rho0_interp = sp.interpolate.interp1d(dyn["t[Myr]"], dyn["#22:rho_0"], kind="linear", bounds_error=True)
+        rho0_interp = sp.interpolate.interp1d(
+            dyn["t[Myr]"],
+            dyn["#22:rho_0"],
+            kind="linear",
+            bounds_error=False,
+            fill_value=(dyn["#22:rho_0"].iloc[0], dyn["#22:rho_0"].iloc[-1]),
+        )
         rho0_MSUN_pc3 = float(rho0_interp(snap.age * 1000))
         snap.rho0_MSUN_pc3 = rho0_MSUN_pc3 * snap.unitdict["msun"] / snap.unitdict["pc"] ** 3
 
@@ -257,7 +280,7 @@ class CMCBrowser:
         bh_log_file = f"{self.ss_dir}/{model_name}/{prefix}.bh.dat"
 
         # load the log file with pandas, delim is just a space
-        bh = pd.read_csv(bh_log_file, delim_whitespace=True)
+        bh = pd.read_csv(bh_log_file, sep="\s+")
 
         # add in the time column
         bh["t[Myr]"] = bh["#2:TotalTime"] * snap.unitdict["myr"]
@@ -287,9 +310,10 @@ class CMCBrowser:
             except ValueError as e:
                 # if that fails, raise the error
                 if strict:
-                    raise ValueError(
+                    msg = (
                         f"Unable to interpolate half mass radius for model {model_name} at time {snap.age}, error: {e}"
-                    ) from None
+                    )
+                    raise ValueError(msg) from None
                 else:
                     print(
                         f"Unable to interpolate half mass radius for model {model_name} at time {snap.age}, error: {e}"
