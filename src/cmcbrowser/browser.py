@@ -15,7 +15,7 @@ __all__ = ["CMCBrowser"]
 
 
 class CMCBrowser:
-    def __init__(self, ss_dir="/home/peter/research/CMC-obs/snapshots"):
+    def __init__(self, ss_dir="/home/peter/research/CMC-validation/snapshots", model_prefix="king"):
         """
         Create a CMCBrowser object to load and interact with CMC snapshots.
 
@@ -23,6 +23,8 @@ class CMCBrowser:
         ----------
         ss_dir : str
             The directory containing the CMC snapshots.
+        model_prefix : str (optional) [default="king"]
+            The prefix to use for the model name. This is used to identify the hdf5 snapshots.
         """
 
         self.ss_dir = ss_dir
@@ -35,27 +37,28 @@ class CMCBrowser:
 
         # enumerate the snapshots for each model
         self.model_snapshots = {}
-        self.model_snapshots_regular = {}
         for model in self.models_list:
-            # check first if there is a tar.gz snapshot
-            snap_fn = glob.glob(f"{self.ss_dir}/{model}/initial.*.dat.gz")
-            if len(snap_fn) == 0:
+            # check first if there is a tar.gz snapshot, this indicates we're loading from the
+            # public grid where there are no window snapshots and everything is in the tar.gz format
+            tar_fns = glob.glob(f"{self.ss_dir}/{model}/initial.*.dat.gz")
+            if len(tar_fns) == 0:
                 # check instead for the hdf5 snapshot
-                snap_fn = glob.glob(f"{self.ss_dir}/{model}/*.window.snapshots.h5")
+                snap_fn_window = glob.glob(f"{self.ss_dir}/{model}/{model_prefix}.window.snapshots.h5")
 
                 # check also regular hdf5 snapshots
-                snap_fn_reg = glob.glob(f"{self.ss_dir}/{model}/*.snapshots.h5")
+                snap_fn_reg = glob.glob(f"{self.ss_dir}/{model}/{model_prefix}.snapshots.h5")
 
-                # remove the window snapshots from the regular snapshots
-                snap_fn = list(set(snap_fn_reg) - set(snap_fn))
+                print(snap_fn_window)
+                print(snap_fn_reg)
 
                 # if no window snapshots, set to None
-                if len(snap_fn) == 0:
-                    snap_fn = None
+                if len(snap_fn_window) == 0:
+                    snap_fn_window = None
                 else:
                     # enumerate the datasets in the hdf5 file
-                    with h5py.File(snap_fn[0], "r") as f:
-                        snap_fn = list(f.keys())
+                    with h5py.File(snap_fn_window[0], "r") as f:
+                        snap_fn_window = list(f.keys())
+                        print(snap_fn_window)
 
                 # do the same for the regular snapshots
                 if len(snap_fn_reg) == 0:
@@ -63,22 +66,23 @@ class CMCBrowser:
                 else:
                     with h5py.File(snap_fn_reg[0], "r") as f:
                         snap_fn_reg = list(f.keys())
+                        print(snap_fn_reg)
+            else:
+                snap_fn_window = None
+                snap_fn_reg = tar_fns
 
-            # save the snapshot filenames
-            self.model_snapshots[model] = snap_fn
-            self.model_snapshots_regular[model] = snap_fn_reg
+            # merge the two lists
+            self.model_snapshots[model] = {}
+            self.model_snapshots[model]["regular"] = snap_fn_reg
+            self.model_snapshots[model]["window"] = snap_fn_window
 
         # remove directory from snapshot name
         for model in self.models_list:
-            if self.model_snapshots[model] is None:
+            if self.model_snapshots[model]["regular"] is None:
                 continue
-            self.model_snapshots[model] = [ss.split("/")[-1] for ss in self.model_snapshots[model]]
-
-        # remove directory from snapshot name
-        for model in self.models_list:
-            if self.model_snapshots_regular[model] is None:
-                continue
-            self.model_snapshots_regular[model] = [ss.split("/")[-1] for ss in self.model_snapshots_regular[model]]
+            self.model_snapshots[model]["regular"] = [
+                ss.split("/")[-1] for ss in self.model_snapshots[model]["regular"]
+            ]
 
     def list_models(self):
         """
@@ -93,8 +97,13 @@ class CMCBrowser:
         Print a list of all snapshots for a given model.
         """
         print("Found the following snapshots:")
-        for ss in self.model_snapshots[model_name]:
+        print("Regular Snapshots:")
+        for ss in self.model_snapshots[model_name]["regular"]:
             print(ss)
+        if self.model_snapshots[model_name]["window"] is not None:
+            print("Window Snapshots:")
+            for ss in self.model_snapshots[model_name]["window"]:
+                print(ss)
 
     def load_snapshot(
         self,
