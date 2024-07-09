@@ -434,7 +434,13 @@ class CMCBrowser:
         self.models_list.append(model_name)
 
         # add snapshots to the list of snapshots
-        self.model_snapshots[model_name] = glob.glob(f"{self.ss_dir}/{model_name}/initial.*.dat.gz")
+        # self.model_snapshots[model_name][] = glob.glob(f"{self.ss_dir}/{model_name}/initial.*.dat.gz")
+
+        # add regular snapshots, recall that downloaded models will only have regular snapshots, in the tar.gz format
+        self.model_snapshots[model_name] = {}
+        tar_fns = glob.glob(f"{self.ss_dir}/{model_name}/initial.*.dat.gz")
+        self.model_snapshots[model_name]["regular"] = [ss.split("/")[-1] for ss in tar_fns]
+        self.model_snapshots[model_name]["window"] = None
 
         # print done and time taken
         print(f"Done! Took {time.time() - start_time} seconds")
