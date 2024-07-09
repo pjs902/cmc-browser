@@ -11,6 +11,7 @@ authors = [
     {name = "Peter Smith", email = "smith.peter.902@gmail.com"},
 ]
 license = { file = "LICENSE" }
+dependencies = ["numpy", "pandas", "scipy", "h5py"]
 
 [project.urls]
 homepage = "https://github.com/pjs902/cmc-browser"
