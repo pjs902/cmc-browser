@@ -48,7 +48,6 @@ class CMCBrowser:
                 # check also regular hdf5 snapshots
                 snap_fn_reg = glob.glob(f"{self.ss_dir}/{model}/{model_prefix}.snapshots.h5")
 
-
                 # if no window snapshots, set to None
                 if len(snap_fn_window) == 0:
                     snap_fn_window = None
@@ -176,6 +175,9 @@ class CMCBrowser:
                 snap.data["m1[MSUN]"] = snap.data["m1_MSUN"]
                 snap.data["luminosity[LSUN]"] = snap.data["luminosity_LSUN"]
             snap.name = f"{model_name}/{h5_key}"
+        else:
+            msg = f"Invalid mode: {mode}, must be one of ['h5', 'dat.gz']"
+            raise ValueError(msg)
 
         # add some useful info
         snap.mass = snap.data["m_MSUN"].sum()
@@ -372,18 +374,23 @@ class CMCBrowser:
         possible_Zs = ["0.02", "0.002", "0.0002"]
 
         if str(N) not in possible_Ns:
-            raise ValueError(f"Invalid N: {N}, must be one of {possible_Ns}")
+            msg = f"Invalid N: {N}, must be one of {possible_Ns}"
+            raise ValueError(msg)
         if str(rv) not in possible_rvs:
-            raise ValueError(f"Invalid rv: {rv}, must be one of {possible_rvs}")
+            msg = f"Invalid rv: {rv}, must be one of {possible_rvs}"
+            raise ValueError(msg)
         if str(rg) not in possible_rgs:
-            raise ValueError(f"Invalid rg: {rg}, must be one of {possible_rgs}")
+            msg = f"Invalid rg: {rg}, must be one of {possible_rgs}"
+            raise ValueError(msg)
         if str(Z) not in possible_Zs:
-            raise ValueError(f"Invalid Z: {Z}, must be one of {possible_Zs}")
+            msg = f"Invalid Z: {Z}, must be one of {possible_Zs}"
+            raise ValueError(msg)
 
         # check if model already exists
         model_name = f"N{str(N)}_rv{str(rv)}_rg{str(rg)}_Z{str(Z)}"
         if model_name in self.models_list:
-            raise ValueError(f"Model {model_name} already exists!")
+            msg = f"Model {model_name} already exists!"
+            raise ValueError(msg)
 
         # record time
         start_time = time.time()
@@ -400,7 +407,8 @@ class CMCBrowser:
 
         # check response
         if r.status_code != 200:
-            raise ValueError(f"Download failed with status code: {r.status_code}")
+            msg = f"Download failed with status code: {r.status_code}"
+            raise ValueError(msg)
 
         # write the file
         with open(f"{self.ss_dir}/{model_name}.tar.gz", "wb") as f:
