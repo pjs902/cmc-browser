@@ -201,6 +201,16 @@ class CMCBrowser:
         snap.vesc_initial = esc[esc["t[Myr]"] < 20]["vesc"].mean()
         snap.vesc_final = esc["vesc"][-5000:].mean()
 
+        # also want the present day escape velocity
+        # need to interpolate to get the escape velocity at the current time
+        # then maybe take the 100 ejections on either side of the current time and average them
+        present_day_vesc_idx = np.argmin(np.abs(esc["t[Myr]"] - snap.age * 1000))
+
+        window = 100
+        lower_bound = max(0, present_day_vesc_idx - window)
+        upper_bound = min(len(esc), present_day_vesc_idx + window)
+        snap.vesc_present_day = esc["vesc"].iloc[lower_bound:upper_bound].mean()
+
         # while we have the escape logs open, get the tidal radius at the current time
         # need to interpolate to get the tidal radius at the current time
 
