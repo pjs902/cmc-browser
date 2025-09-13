@@ -15,7 +15,8 @@ __all__ = ["CMCBrowser"]
 
 
 class CMCBrowser:
-    def __init__(self, ss_dir="/home/peter/research/CMC-validation/snapshots", model_prefix="king"):
+
+    def __init__(self, ss_dir, model_prefix="king"):
         """
         Create a CMCBrowser object to load and interact with CMC snapshots.
 
@@ -187,7 +188,7 @@ class CMCBrowser:
         esc_log_file = f"{self.ss_dir}/{model_name}/{prefix}.esc.dat"
 
         # load the log file with pandas, delim is just a space
-        esc = pd.read_csv(esc_log_file, sep="\s+")
+        esc = pd.read_csv(esc_log_file, sep=r"\s+")
 
         esc["t[Myr]"] = esc["#2:t"] * snap.unitdict["myr"]
 
@@ -239,7 +240,7 @@ class CMCBrowser:
         dyn_log_file = f"{self.ss_dir}/{model_name}/{prefix}.dyn.dat"
 
         # load the log file with pandas, delim is just a space
-        dyn = pd.read_csv(dyn_log_file, skiprows=1, sep="\s+")
+        dyn = pd.read_csv(dyn_log_file, skiprows=1, sep=r"\s+")
 
         # get the initial mass
         snap.initial_mass = dyn["#5:M"][0] * snap.unitdict["msun"]
@@ -297,7 +298,7 @@ class CMCBrowser:
         bh_log_file = f"{self.ss_dir}/{model_name}/{prefix}.bh.dat"
 
         # load the log file with pandas, delim is just a space
-        bh = pd.read_csv(bh_log_file, sep="\s+")
+        bh = pd.read_csv(bh_log_file, sep=r"\s+")
 
         # add in the time column
         bh["t[Myr]"] = bh["#2:TotalTime"] * snap.unitdict["myr"]
@@ -353,7 +354,7 @@ class CMCBrowser:
         elif mode == "h5":
             self.loaded_snapshots[f"{model_name}/{h5_key}"] = snap
 
-    def download_new_model(self, N, rv, rg, Z):  # pragma: no cover
+    def download_new_model(self, N, rv, rg, Z):
         """
         Download new models from the CMC website. Will not download if the model already exists.
 
@@ -361,13 +362,10 @@ class CMCBrowser:
         ----------
         N : str
             The number of particles in the model. Must be one of ["1.6e6", "2e5", "3.2e6", "4e5", "8e5"]
-
         rv : str
             The virial radius of the model. Must be one of ["0.5", "1", "2", "4"]
-
         rg : str
             The galactocentric radius of the model. Must be one of ["2", "20", "8"]
-
         Z : str
             The metallicity of the model. Must be one of ["0.02", "0.002", "0.0002"]
 
@@ -376,7 +374,8 @@ class CMCBrowser:
         The largest models with N=3.2e6 are only computed for a subset of the possible parameters.
 
         """
-        base_url = "https://cmc.ciera.northwestern.edu/download-cluster/download-cluster/"
+        # new url, post instead of get
+        url = "https://cmc.ciera.northwestern.edu/index.php"
 
         possible_Ns = ["1.6e6", "2e5", "3.2e6", "4e5", "8e5"]
         possible_rvs = ["0.5", "1", "2", "4"]
@@ -405,52 +404,76 @@ class CMCBrowser:
         # record time
         start_time = time.time()
 
-        # construct the url
-        url = f"{base_url}?number_of_objects=N{str(N)}&virial_radius=rv{str(rv)}&galactocentric_distance=rg{str(rg)}&metallicity=Z{str(Z)}"
-
-        # construct the model name
-        model_name = f"N{str(N)}_rv{str(rv)}_rg{str(rg)}_Z{str(Z)}"
+        # now need to post the data to the website
+        payload = {
+            "number_of_objects": f"N{str(N)}",
+            "virial_radius": f"rv{str(rv)}",
+            "galactocentric_distance": f"rg{str(rg)}",
+            "metallicity": f"Z{str(Z)}",
+        }
 
         # download the file
         print(f"Downloading model: {model_name}")
-        r = requests.get(url, allow_redirects=True, timeout=10, verify=False)
+
+        r = requests.post(url, data=payload, allow_redirects=True, timeout=30)
 
         # check response
         if r.status_code != 200:
             msg = f"Download failed with status code: {r.status_code}"
             raise ValueError(msg)
 
+        # A successful download will have a specific content-type.
+        # If the model combination is invalid, the server returns an HTML page.
+        if "text/html" in r.headers.get("Content-Type", ""):
+            msg = f"Download failed. The server returned an HTML page, not a file. The model '{model_name}' might not exist."
+            raise ValueError(msg)
+
         # write the file
-        with open(f"{self.ss_dir}/{model_name}.tar.gz", "wb") as f:
-            f.write(r.content)
+        try:
+            with open(f"{self.ss_dir}/{model_name}.tar.gz", "wb") as f:
+                f.write(r.content)
+        except Exception as e:
+            msg = f"Failed to write the downloaded file: {e}"
+            raise OSError(msg) from None
 
         # extract the file
-        print(f"Unzipping model: {model_name}")
-        with gzip.open(f"{self.ss_dir}/{model_name}.tar.gz", "rb") as f_in:
-            with open(f"{self.ss_dir}/{model_name}.tar", "wb") as f_out:
+        try:
+            print(f"Unzipping model: {model_name}")
+            with (
+                gzip.open(f"{self.ss_dir}/{model_name}.tar.gz", "rb") as f_in,
+                open(f"{self.ss_dir}/{model_name}.tar", "wb") as f_out,
+            ):
                 f_out.write(f_in.read())
+        except Exception as e:
+            msg = f"Failed to unzip the downloaded file: {e}"
+            raise OSError(msg) from None
 
         # untar the file into the subdirectory
         print(f"Untarring model: {model_name}")
-        with tarfile.open(f"{self.ss_dir}/{model_name}.tar", "r") as tar:
-            tar.extractall(path=f"{self.ss_dir}/{model_name}")
+        try:
+            with tarfile.open(f"{self.ss_dir}/{model_name}.tar", "r") as tar:
+                tar.extractall(path=f"{self.ss_dir}/{model_name}")
+        except Exception as e:
+            msg = f"Failed to untar the downloaded file: {e}"
+            raise OSError(msg) from None
 
         # remove the tar and zipped tar files
         print("Cleaning up")
-        os.remove(f"{self.ss_dir}/{model_name}.tar.gz")
-        os.remove(f"{self.ss_dir}/{model_name}.tar")
+        try:
+            os.remove(f"{self.ss_dir}/{model_name}.tar.gz")
+            os.remove(f"{self.ss_dir}/{model_name}.tar")
+        except Exception as e:
+            print(f"Warning: Failed to remove temporary files: {e}")
+            pass
 
         # add the new model to the list of models
         self.models_list.append(model_name)
 
         # add snapshots to the list of snapshots
-        # self.model_snapshots[model_name][] = glob.glob(f"{self.ss_dir}/{model_name}/initial.*.dat.gz")
-
-        # add regular snapshots, recall that downloaded models will only have regular snapshots, in the tar.gz format
         self.model_snapshots[model_name] = {}
         tar_fns = glob.glob(f"{self.ss_dir}/{model_name}/initial.*.dat.gz")
         self.model_snapshots[model_name]["regular"] = [ss.split("/")[-1] for ss in tar_fns]
         self.model_snapshots[model_name]["window"] = None
 
         # print done and time taken
-        print(f"Done! Took {time.time() - start_time} seconds")
+        print(f"Done! Took {time.time() - start_time:.2f} seconds")
